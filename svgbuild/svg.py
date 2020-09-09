@@ -1,7 +1,7 @@
-#!/usr/bin/python
+# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 
 from lxml import etree
-#from PyQt4 import QtCore
 
 #class SVG(QtCore.QObject):
 class SVG():

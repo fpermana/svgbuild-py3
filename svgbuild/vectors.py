@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 # vectors - a simple vector, complex, quaternion, and 4d matrix math module
 
 '''

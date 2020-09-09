@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 # interpolations - routines for numerical interpolations between control values
 
 '''

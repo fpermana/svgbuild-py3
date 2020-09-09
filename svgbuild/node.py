@@ -1,14 +1,9 @@
-
-#from PyQt4 import QtCore
-
-#class Node(QtCore.QObject):
+# -*- coding: utf-8 -*-
+#!/usr/bin/env python3
 class Node():
     command = ""
     attrib = []
     showCommand = False
-    
-    def __init__(self):
-        super(Node, self).__init__()
         
     def getValue(self):
         value = ""

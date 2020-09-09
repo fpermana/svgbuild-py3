@@ -10,12 +10,12 @@ def _qx(cmd, verbose=False):
     return output
 
 def qx(cmd, verbose=False):
-    '''Just like qx// or backticks operator from Perl, running the command
-    and returning the STDOUT results as a string.  Optional echo of the
-    command issued first.
-    '''
+    # Just like qx// or backticks operator from Perl, running the command
+    # and returning the STDOUT results as a string.  Optional echo of the
+    # command issued first.
+    
     if verbose: print(cmd)
-    run = subprocess.Popen(cmd, shell=True,
+    run = subprocess.Popen(cmd,
                            stdout=subprocess.PIPE,
                            stderr=subprocess.PIPE)
     (out, err) = run.communicate()
