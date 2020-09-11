@@ -10,6 +10,7 @@ from .camera import Camera
 from .node import Node
 from lxml import etree
 import decimal
+from svg.path import parse_path
 
 class SVGBuild():
     
@@ -21,14 +22,16 @@ class SVGBuild():
             'background_color': '#FFFFFF',
 
             'show_camera': False,
-            'camera_frame' : '#FF0000',
+            'camera_frame_color' : '#FF0000',
 
             'build_path': False,
+            'detail_path': False,
+            'path_node_count': 0,
+            'group_node': False,
+            'group_node_count': 0,
             'circle_path': False,
             'close_path': False,
-            'fill_path': False,
-            'full_path': False,
-            'object_color': '#FFFFFF',
+            'object_color': '',
             'use_object_color': False,
             'line_color' : '#000000',
             'use_object_line_color': False,
@@ -78,6 +81,18 @@ class SVGBuild():
 
             else:
                 self.options[arg] = options[arg]
+
+
+        keys = ['background_color', 'camera_frame_color', 'object_color', 'line_color']
+        colorNames = ['aliceblue','antiquewhite','aqua','aquamarine','azure','beige','bisque','black','blanchedalmond','blue','blueviolet','brown','burlywood','cadetblue','chartreuse','chocolate','coral','cornflowerblue','cornsilk','crimson','cyan','darkblue','darkcyan','darkgoldenrod','darkgray','darkgreen','darkgrey','darkkhaki','darkmagenta','darkolivegreen','darkorange','darkorchid','darkred','darksalmon','darkseagreen','darkslateblue','darkslategray','darkslategrey','darkturquoise','darkviolet','deeppink','deepskyblue','dimgray','dimgrey','dodgerblue','firebrick','floralwhite','forestgreen','fuchsia','gainsboro','ghostwhite','gold','goldenrod','gray','green','greenyellow','grey','honeydew','hotpink','indianred','indigo','ivory','khaki','lavender','lavenderblush','lawngreen','lemonchiffon','lightblue','lightcoral','lightcyan','lightgoldenrodyellow','lightgray','lightgreen','lightgrey','lightpink','lightsalmon','lightseagreen','lightskyblue','lightslategray','lightslategrey','lightsteelblue','lightyellow','lime','limegreen','linen','magenta','maroon','mediumaquamarine','mediumblue','mediumorchid','mediumpurple','mediumseagreen','mediumslateblue','mediumspringgreen','mediumturquoise','mediumvioletred','midnightblue','mintcream','mistyrose','moccasin','navajowhite','navy','oldlace','olive','olivedrab','orange','orangered','orchid','palegoldenrod','palegreen','paleturquoise','palevioletred','papayawhip','peachpuff','peru','pink','plum','powderblue','purple','red','rosybrown','royalblue','saddlebrown','salmon','sandybrown','seagreen','seashell','sienna','silver','skyblue','slateblue','slategray','slategrey','snow','springgreen','steelblue','tan','teal','thistle','tomato','turquoise','violet','wheat','white','whitesmoke','yellow','yellowgreen']
+
+        for key in keys:
+            if self.options[key]:
+                match = re.search(r'^#(?:[0-9a-fA-F]{3}){1,2}$', self.options[key])
+
+                if not match and self.options[key].lower() not in colorNames:
+                  print('%s is not valid hex value %s' % (key,self.options[key]))
+                  return False
 
         ok = False
 
@@ -176,46 +191,9 @@ class SVGBuild():
 
             if self.camera.survey(self.svg):
                 self.camera.move(self.svg.root.attrib['id'])
-                self.build(self.svg, self.svg.root)
+                self.build(self.svg.root)
                 
-                if not self.options['page_view']:
-                    location = self.camera.locate(self.svg.root.attrib['id'])
-                    page_width = float(self.svg.root.attrib['width'])
-                    page_height = float(self.svg.root.attrib['height'])
-                    if location[0] < 0 or location[1] < 0 or location[2] > page_width or location[3] > page_height:
-                        print('Panning...')
-                        page = [0,0,page_width,page_height]
-                        target = self.camera.zoom(self.camera.fit(self.camera.locate(page)))
-                        self.camera.pan(self.svg, target)
-
-                        if not self.options['no_background']:
-                            rect1 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1001')
-                            rect1.set('height', str(page_height+100))
-                            rect1.set('width', str(page_width))
-                            rect1.set('x', str(0-page_width))
-                            rect1.set('y', '-50')
-                            rect1.set('style', 'fill:%s;' % self.options['background_color'])
-
-                            rect2 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1002')
-                            rect2.set('height', str(page_height+100))
-                            rect2.set('width', str(page_width))
-                            rect2.set('x', str(page_width))
-                            rect1.set('y', '-50')
-                            rect2.set('style', 'fill:%s;' % self.options['background_color'])
-
-                            rect3 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1003')
-                            rect3.set('height', str(page_height))
-                            rect3.set('width', str(page_width+100))
-                            rect3.set('x', '-50')
-                            rect3.set('y', str(0-page_height))
-                            rect3.set('style', 'fill:%s;' % self.options['background_color'])
-
-                            rect4 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1004')
-                            rect4.set('height', str(page_height))
-                            rect4.set('width', str(page_width+100))
-                            rect3.set('x', '-50')
-                            rect4.set('y', str(page_height))
-                            rect4.set('style', 'fill:%s;' % self.options['background_color'])
+                self.lastPanning()
                 
                 print('Finishing...')
                 self.options['show_camera'] = False
@@ -235,7 +213,7 @@ class SVGBuild():
 
         return True
 
-    def build(self, svg, entity):
+    def build(self, entity):
         # Recursively build up the given entity, by removing all its children
         # and adding them back in one at a time, and shooting the progress with
         # the given camera.
@@ -288,11 +266,11 @@ class SVGBuild():
 
             if self.options['page_view']:
                 if self.options['show_camera']:
-                    self.camera.pan(svg, child.attrib['id'], margin=1.2)
+                    self.camera.pan(self.svg, child.attrib['id'], margin=1.2)
 
-                self.camera.shoot(svg)
+                self.camera.shoot(self.svg)
             else:
-                self.camera.pan(svg, child.attrib['id'], margin=1.2)
+                self.camera.pan(self.svg, child.attrib['id'], margin=1.2)
 
             if child.getchildren() and not child.tag in nochild:
                 if backward:
@@ -300,10 +278,10 @@ class SVGBuild():
                 else:
                     entity.append(child)
 
-                self.build(svg, child)
+                self.build(child)
             else:
                 if self.options['bring_to_top']:
-                    svg.root.append(child)
+                    self.svg.root.append(child)
                 else:
                     if backward:
                         entity.insert(0, child)
@@ -311,27 +289,27 @@ class SVGBuild():
                         entity.append(child)
 
                 if self.options['build_path'] and re.search(r"\}path$", child.tag):
-                    self.build_path(svg, child)
+                    self.build_path(child)
                 elif self.options['build_image'] and re.search(r"\}image$", child.tag):
-                    self.build_image(svg, child)
+                    self.build_image(child)
                 elif self.options['build_text'] and re.search(r"\}text$", child.tag):
-                    self.build_text(svg, child)
+                    self.build_text(child)
                 else:
-                    self.camera.shoot(svg)
+                    self.camera.shoot(self.svg)
 
                 if self.options['bring_to_top']:
-                    svg.root.remove(child)
+                    self.svg.root.remove(child)
                     if backward:
                         entity.insert(0, child)
                     else:
                         entity.append(child)
 
-            self.camera.shoot(svg)
+            self.camera.shoot(self.svg)
             self.camera.hold(self.options['dally'] - 1)
 
-        self.camera.pan(svg, id)
+        self.camera.pan(self.svg, id)
         
-    def build_image(self, svg, entity):
+    def build_image(self, entity):
         # Special progressive drawing of an image element.
         # The image will be included a few scanlines at a time until whole.
         
@@ -340,13 +318,13 @@ class SVGBuild():
         img_url = urllib.parse.urlparse(entity.attrib[href])
         img = img_url.path
         if not os.path.exists(img):
-            print(('Image file not found locally:', img))
+            print('Image file not found locally: %s' % img)
             return
 
         try:
             output_image = Image.open(img)
         except IOError as e:
-            print(("error opening file :: %s" % img))
+            print("error opening file :: %s" % img)
         size = output_image.size
         # for a handful of frames, replace image with a truncated temporary image
         tmp = self.options['folder'] + '/temp.png'
@@ -361,119 +339,108 @@ class SVGBuild():
             
             if os.path.exists(tmp):
                 entity.attrib[href] = tmp
-                self.camera.shoot(svg)
+                self.camera.shoot(self.svg)
                 os.unlink(tmp)
         # replace the original image reference
         entity.attrib[href] = img
-        self.camera.shoot(svg)
+        self.camera.shoot(self.svg)
 
-    def convertToAbsolutePath(self, d):
-        # convert relative path to absolute path
-        nodes = []
-        command = ""
-        point = ""
-        coordinateCount = 0
-        showCommand = False
-        
-        points = d.strip().split(' ')
+    def build_text(self, entity):
+        # Special progressive drawing of a text or tspan contents.
+        # The text will appear one letter at a time until whole.
+        text = entity.text
+        entity.text = ''
+        # if we have children, recurse to build their .text now
+        if entity.getchildren():
+            children = [ ]
+            for child in entity.iterchildren():
+                if child.text:
+                    children.append(child)
+            for child in children:
+                entity.remove(child)
+            for child in children:
+                entity.append(child)
+                build_text(self.svg, child)
+        # come back to build our own direct text
+        if not text: return
+        for l in range(1, len(text)):
+            entity.text = text[:l]
+            self.camera.shoot(self.svg)
+        entity.text = text
+        self.camera.shoot(self.svg)
 
-        node = None
-        # convert from point to Node
-        while points:
-            
-            point = points[0]
-            
-            node = Node()
-            attrib = []
-            if re.match(r'^[a-zA-Z]$', point):
-                command = point
-                showCommand = True
-                coordinateCount = Node.getCoordinateCount(command)
-                points.pop(0)
-            elif command == "M" or command == "m":
-                showCommand = False
-        
-            for j in range(0, coordinateCount):
-                if len(points) > 0:
-                    point = points.pop(0)
-                    if ',' not in point and len(points) > 0 and command in 'aA' and (j == 0 or j==coordinateCount-1):
-                        n = points.pop(0)
-                        if ',' in n:
-                            attrib.append(point)
-                            attrib.append(n)
-                        else:
-                            attrib.append("%s,%s" % (point,n))
-                    elif ',' not in point and len(points) > 0 and command in 'cClLmMqQsStT':
-                        attrib.append("%s,%s" % (point,points.pop(0)))
-                    else:
-                        attrib.append(point)
-
-
-            node.command = command
-            node.attrib = attrib
-            node.showCommand = showCommand
-            
-            nodes.append(node)
-
-        x = None
-        y = None
-        for node in nodes:
-            if len(node.attrib) > 0:
-                coordinate = node.attrib[-1]
-                xy = coordinate.split(",")
-                if x is None and y is None:
-                    x = float(xy[0])
-                    y = float(xy[1])
-                elif node.command == "h":
-                    x += float(xy[0])
-                    node.attrib[-1] = str(x)
-                elif node.command == "v":
-                    y += float(xy[0])
-                    node.attrib[-1] = str(y)
-                elif node.command == "H":
-                    x = float(xy[0])
-                elif node.command == "V":
-                    y = float(xy[0])
-                elif node.command.islower():
-                    for i in range(len(node.attrib)):
-                        coordinate = node.attrib[i]
-                        xy = coordinate.split(",")
-                        if len(xy) == 2:
-                            xy[0] = str(float(xy[0]) + x)
-                            xy[1] = str(float(xy[1]) + y)
-                            node.attrib[i] = ','.join(xy)
-                            if i == (len(node.attrib)-1):
-                                x = float(xy[0])
-                                y = float(xy[1])
-                elif node.command.isupper():
-                    x = float(xy[0])
-                    y = float(xy[1])
-
-            node.command = node.command.upper()
-
-        points = []
-        for node in nodes:
-            points.append(node.getValue())
-
-        d = ' '.join(points).strip()
-
-        return d
-
-    def build_path(self, svg, entity):
+    def build_path(self, entity):
         # Special progressive drawing of a path element.
         # The path will be included one bezier element at a time until whole.
         if not 'd' in entity.attrib: return
         id = entity.attrib['id']
         name = id
-        print(('%05d - Building up <%s id="%s"> (%s)...' % (self.camera.time, entity.tag, id, name)))
+        print('%05d - Building up <%s id="%s"> (%s)...' % (self.camera.time, entity.tag, id, name))
         # replace style with our own style
         style = ''
         if 'style' in entity.attrib:
             style = entity.attrib['style']
+        hl = self.generateHairline(style)
+        hairline = ';'.join("%s:%s" % (key,val) for (key,val) in list(hl.items()))
+        entity.attrib['style'] = hairline
+
+        # scan the control points
+        # points = entity.attrib['d'].split(' ')
+        # print entity.attrib['d']
+        ori_d = entity.attrib['d']
+        d = ori_d
+
+        # # TODO: option circle_path did not work if there is an EllipticalArcCurve
+        # # https://developer.mozilla.org/en-US/docs/Web/SVG/Attribute/d
+        # # need more workaround for conversion to absolute path
+        # containEllipticalArcCurve = False
+        # if 'a' in d or 'A' in d:
+        #     containEllipticalArcCurve = True
+
+        # # case for 10e-6, 2.52e-4, etc
+        # if 'e' in d or 'E' in d:
+        #     matches = re.findall(r'[0-9\.-]*[eE][0-9-]*', d)
+        #     for match in matches:
+        #         dec = str(decimal.Decimal(match))
+        #         d = d.replace(match, dec)
+
+        # d = re.sub(r'([a-zA-Z])([a-zA-Z])', r'\1 \2', d)
+        # d = re.sub(r'([a-zA-Z])([0-9-])', r'\1 \2', d)
+        # d = re.sub(r'([0-9])([a-zA-Z])', r'\1 \2', d)
+
+        # if self.options['circle_path'] and not containEllipticalArcCurve:
+        #     d = self.convertToAbsolutePath(d)
+
+        if self.options['detail_path']:
+            svgPath = parse_path(d)
+            d = svgPath.d()
+
+        paths = d.replace('z', 'z#').replace('Z', 'Z#').split('#')
+        if self.options['backward']:
+            paths.reverse()
+
+        # for pathIndex in range(len(paths)):
+        for pathIndex, path in enumerate(paths):
+            if len(path) == 0:
+                continue
+
+            if self.options['detail_path']:
+                self.build_detail_path(entity, paths, pathIndex, path)
+            else:
+                self.build_simple_path(entity, paths, pathIndex, path)
+                
+        # put the original d and style back
+        entity.attrib['d'] = ori_d
+        entity.attrib['style'] = style
+        self.camera.shoot(self.svg)
+
+
+    def generateHairline(self, style):
+        # generate a temporary style while building path
         width = (self.camera.area[3]-self.camera.area[1]) / float(self.camera.height)
         if self.options['page_view']:
-            page_width = float(svg.root.attrib['width'])
-            page_height = float(svg.root.attrib['height'])
+            page_width = float(self.svg.root.attrib['width'])
+            page_height = float(self.svg.root.attrib['height'])
             if page_width > page_height:
                 width = page_width / page_height
             else:
@@ -491,217 +458,355 @@ class SVGBuild():
         hl = {
               'opacity': '1', 
               'overflow': 'visible', 
-              'fill-opacity': '0',
-              'fill-rule': 'nonzero',
-              'stroke-linecap': 'round',
-              'stroke-linejoin': 'round',
+              'fill-opacity': '1',
+              # 'fill-rule': 'nonzero',
+              # 'stroke-linecap': 'round',
+              # 'stroke-linejoin': 'round',
               'marker': 'none',
               'marker-start': 'none',
               'marker-mid': 'none',
               'marker-end': 'none',
-              'stroke-miterlimit': '4',
-              'stroke-dasharray': 'none',
-              'stroke-dashoffset': '0',
+              # 'stroke-miterlimit': '4',
+              # 'stroke-dasharray': 'none',
+              # 'stroke-dashoffset': '0',
               'stroke-opacity': '1',
               'visibility': 'visible',
-              'display': 'inline',
-              'enable-background': 'accumulate', 
+              # 'display': 'inline',
+              # 'enable-background': 'accumulate', 
               'stroke-width': '%f' % width
               }
+
+        for h in hl:
+            style_dict[h] = hl[h]
               
-        if self.options['use_object_line_color']:
-            if 'line' in style_dict:
-                hl['stroke'] = style_dict['line']
-            elif self.options['line_color']:
-#                hl['stroke'] = '#000000'
-                hl['stroke'] = self.options['line_color']
-        elif self.options['line_color']:
-            hl['stroke'] = self.options['line_color']
+        if not self.options['use_object_line_color']:
+            if self.options['line_color']:
+                style_dict['stroke'] = self.options['line_color']
+                style_dict['line'] = self.options['line_color']
+            else:
+                style_dict['stroke-opacity'] = '0'
 
         if self.options['add_marker']:
-#            hl.append('marker-end:url(#%s)' % self.marker)
             hl['marker-end'] = 'url(#%s)' % self.options['marker_name']
-            #~ hl.append('marker-start:url(#Arrow1Lstart)')
-            #~ hl[12] = 'marker-end:url(#SquareL)'
-#        else:
-#            hl.append('marker-end:none')
-            #~ hl.append('marker-start:none')
             
-        if self.options['fill_path']:
-#            hl.append('marker-end:url(#%s)' % self.marker)
-            hl['fill-opacity'] = '1'
-            
-        if self.options['use_object_color']:
-            if 'fill' in style_dict:
-                hl['fill'] = style_dict['fill']
-            elif self.options['object_color']:
-                hl['fill'] = self.options['object_color']
-        elif self.options['object_color']:
-            hl['fill'] = self.options['object_color']
-        # hl = [
-        # 'opacity:1', 'overflow:visible',
-        # 'fill:none',
-        # 'fill-opacity:0.',
-        # 'fill-rule:nonzero',
-        # 'stroke:%s' % self.options['line'],
-        # 'stroke-width:%f' % width,
-        # 'stroke-linecap:round', 'stroke-linejoin:round',
-        # 'marker:none',
-        # 'marker-start:none',
-        # 'marker-mid:none',
-        # # 'marker-end:none',
-        # 'stroke-miterlimit:4', 'stroke-dasharray:none',
-        # 'stroke-dashoffset:0', 'stroke-opacity:1',
-        # 'visibility:visible', 'display:inline',
-        # 'enable-background:accumulate' 
-        # ]
+        if not self.options['use_object_color']:
+            if self.options['object_color']:
+                style_dict['fill'] = self.options['object_color']
+            else:
+                style_dict['fill-opacity'] = '0'
         
-        hairline = ';'.join("%s:%s" % (key,val) for (key,val) in list(hl.items()))
-        # print hairline
+        return style_dict
 
-        entity.attrib['style'] = hairline
+    # def convertToAbsolutePath(self, d):
+    #     # convert relative path to absolute path
+    #     nodes = []
+    #     command = ""
+    #     point = ""
+    #     coordinateCount = 0
+    #     showCommand = False
+        
+    #     points = d.strip().split(' ')
 
-        # scan the control points
-        # points = entity.attrib['d'].split(' ')
-        # print entity.attrib['d']
-        ori_d = entity.attrib['d']
-
-        # case for 10e-6, 2.52e-4, etc
-        d = ori_d
-        if 'e' in ori_d or 'E' in ori_d:
-            matches = re.findall(r'[0-9\.-]*[eE][0-9-]*', d)
-            for match in matches:
-                dec = str(decimal.Decimal(match))
-                d = d.replace(match, dec)
-
-        d = re.sub(r'([a-zA-Z])([a-zA-Z])', r'\1 \2', d)
-        d = re.sub(r'([a-zA-Z])([0-9-])', r'\1 \2', d)
-        d = re.sub(r'([0-9])([a-zA-Z])', r'\1 \2', d)
-        # print(d)
-
-        if self.options['circle_path']:
-            d = self.convertToAbsolutePath(d)
-
-        paths = d.replace('z', 'z#').replace('Z', 'Z#').split('#')
-        if self.options['backward']:
-            paths.reverse()
-
-        for pathIndex, path in enumerate(paths):
-            if len(path) == 0:
-                continue
-
-            nodes = []
-            command = ""
-            point = ""
-            coordinateCount = 0
-            showCommand = False
+    #     node = None
+    #     # convert from point to Node
+    #     while points:
             
-            points = path.strip().split(' ')
-            pointsCount = len(points)
-
-            node = None
-            # convert from point to Node
-            while points:
-                
-                point = points[0]
-                
-                node = Node()
-                attrib = []
-                if re.match(r'^[a-zA-Z]$', point):
-                    command = point
-                    showCommand = True
-                    coordinateCount = Node.getCoordinateCount(command)
-                    points.pop(0)
-                elif command == "M" or command == "m":
-                    showCommand = False
+    #         point = points[0]
             
-                for j in range(0, coordinateCount):
-                    if len(points) > 0:
-                        point = points.pop(0)
-                        if ',' not in point and len(points) > 0 and command in 'cClLmMqQsStT':
-                            attrib.append("%s,%s" % (point,points.pop(0)))
-                        else:
+    #         node = Node()
+    #         attrib = []
+    #         if re.match(r'^[a-zA-Z]$', point):
+    #             command = point
+    #             showCommand = True
+    #             coordinateCount = Node.getCoordinateCount(command)
+    #             points.pop(0)
+    #         elif command == "M" or command == "m":
+    #             showCommand = False
+        
+    #         for j in range(0, coordinateCount):
+    #             if len(points) > 0:
+    #                 point = points.pop(0)
+    #                 if ',' not in point and len(points) > 0 and command in 'aA' and (j == 0 or j==coordinateCount-1):
+    #                     n = points.pop(0)
+    #                     if ',' in n:
+    #                         attrib.append(point)
+    #                         attrib.append(n)
+    #                     else:
+    #                         attrib.append("%s,%s" % (point,n))
+    #                 elif ',' not in point and len(points) > 0 and command in 'cClLmMqQsStT':
+    #                     attrib.append("%s,%s" % (point,points.pop(0)))
+    #                 else:
+    #                     attrib.append(point)
+
+
+    #         node.command = command
+    #         node.attrib = attrib
+    #         node.showCommand = showCommand
+            
+    #         nodes.append(node)
+
+    #     x = None
+    #     y = None
+    #     for node in nodes:
+    #         if len(node.attrib) > 0:
+    #             coordinate = node.attrib[-1]
+    #             xy = coordinate.split(",")
+    #             if x is None and y is None:
+    #                 x = float(xy[0])
+    #                 y = float(xy[1])
+    #             elif node.command == "h":
+    #                 x += float(xy[0])
+    #                 node.attrib[-1] = str(x)
+    #             elif node.command == "v":
+    #                 y += float(xy[0])
+    #                 node.attrib[-1] = str(y)
+    #             elif node.command == "H":
+    #                 x = float(xy[0])
+    #             elif node.command == "V":
+    #                 y = float(xy[0])
+    #             elif node.command.islower():
+    #                 for i in range(len(node.attrib)):
+    #                     coordinate = node.attrib[i]
+    #                     xy = coordinate.split(",")
+    #                     if len(xy) == 2:
+    #                         xy[0] = str(float(xy[0]) + x)
+    #                         xy[1] = str(float(xy[1]) + y)
+    #                         node.attrib[i] = ','.join(xy)
+    #                         if i == (len(node.attrib)-1):
+    #                             x = float(xy[0])
+    #                             y = float(xy[1])
+    #             elif node.command.isupper():
+    #                 x = float(xy[0])
+    #                 y = float(xy[1])
+
+    #         node.command = node.command.upper()
+
+    #     points = []
+    #     for node in nodes:
+    #         points.append(node.getValue())
+
+    #     d = ' '.join(points).strip()
+
+    #     return d
+
+    def build_simple_path(self, entity, paths, pathIndex, path):
+        # build path based on original svg build author script
+
+        points = path.strip().split(' ')
+        built = [ ]
+        # each control point is a letter, followed by some floating-point pairs
+        while points:
+            built.append( points.pop(0) )
+            while points and not re.match(r'^[a-zA-Z]$', points[0]):
+                built.append( points.pop(0) )
+            # add the point to our path
+            d = ' '.join(built).strip()
+
+            previousPaths = paths[0:pathIndex]
+            d = ' '.join(previousPaths).strip() + ' ' + d
+
+            if self.options['close_path'] and not (d.endswith('z') or d.endswith('Z')):
+                d = d + ' z'
+            entity.attrib['d'] = d
+            self.camera.shoot(self.svg)
+
+    def build_detail_path(self, entity, paths, pathIndex, path):
+        # build path with more detailed options
+        # nodes = parse_path(path)
+        # built = Path()
+        # leftPath = Path()
+        # rightPath = Path()
+        # lastCommand = ""
+        # built.append(nodes.pop())
+        # print(built.d())
+
+        # while nodes:
+        #     if self.options['group_node']:
+        #         node = nodes.pop(0)
+        #         built.append(node)
+        #         lastCommand = node.__class__.__name__
+        #         count = 0
+        #         while nodes:
+        #             node = nodes[0]
+                    
+        #             if lastCommand == node.__class__.__name__:
+        #                 node = nodes.pop(0)
+        #                 built.append(node)
+
+        #                 count += 1
+        #                 if self.options['group_node_count'] > 0 and count > self.options['group_node_count']:
+        #                     break
+        #             else:
+        #                 break
+        #     elif self.options['circle_path']:
+        #         count = 0
+        #         while nodes:
+        #             node = nodes.pop(0)
+        #             leftPath.append(node)
+
+        #             count += 1
+        #             if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
+        #                 break
+
+        #         count = 0
+        #         while nodes:
+        #             node = nodes.pop()
+        #             rightPath.insert(0, node)
+
+        #             count += 1
+        #             if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
+        #                 break
+
+        #         built = Path()
+        #         for node in leftPath:
+        #             built.append(node)
+        #         for node in rightPath:
+        #             built.append(node)
+
+        #     else:
+        #         count = 0
+        #         while nodes:
+        #             node = nodes.pop(0)
+        #             built.append(node)
+
+        #             count += 1
+        #             if self.options['path_node_count'] > 0 and count > self.options['path_node_count']:
+        #                 break
+
+        #     if self.camera.time < self.options['from'] or self.camera.time > self.options['until']:
+        #         self.camera.time += 1
+        #         continue
+
+        #     d = built.d()
+
+        #     previousPaths = paths[0:pathIndex]
+        #     d = ' '.join(previousPaths).strip() + ' ' + d
+
+        #     if self.options['close_path'] and not (d.endswith('z') or d.endswith('Z')):
+        #         d = d + ' z'
+        #     entity.attrib['d'] = d
+        #     self.camera.shoot(self.svg)
+
+        # convert path to absolute path
+        # svgPath = parse_path(path)
+        points = path.strip().split(' ')
+        nodes = []
+        command = ""
+        point = ""
+        coordinateCount = 0
+        showCommand = False
+        
+        node = None
+        # convert from point to Node
+        while points:   
+            point = points[0]
+            
+            node = Node()
+            attrib = []
+            if re.match(r'^[a-zA-Z]$', point):
+                command = point
+                showCommand = True
+                coordinateCount = Node.getCoordinateCount(command)
+                points.pop(0)
+
+            elif command == "M" or command == "m":
+                showCommand = False
+        
+            for j in range(0, coordinateCount):
+                if len(points) > 0:
+                    point = points.pop(0)
+
+                    if ',' not in point and len(points) > 0 and command in 'aA' and (j == 0 or j==coordinateCount-1):
+                        n = points.pop(0)
+                        if ',' in n:
                             attrib.append(point)
+                            attrib.append(n)
+                        else:
+                            attrib.append("%s,%s" % (point,n))
+                    elif ',' not in point and len(points) > 0 and command in 'cClLmMqQsStT':
+                        attrib.append("%s,%s" % (point,points.pop(0)))
+                    else:
+                        attrib.append(point)
 
+            node.command = command
+            node.attrib = attrib
+            node.showCommand = showCommand
+            
+            nodes.append(node)
 
-                node.command = command
-                node.attrib = attrib
-                node.showCommand = showCommand
-                
-                nodes.append(node)
+        leftPath = []
+        rightPath = []
+        built = []
 
-            leftPath = []
-            rightPath = []
-            built = []
-
-            while nodes:
-                if not self.options['full_path']:
-                    while nodes:
+        while nodes:
+            if self.options['group_node']:
+                node = nodes.pop(0)
+                built.append(node.getValue())
+                lastCommand = node.command
+                count = 0
+                while nodes:
+                    node = nodes[0]
+                    
+                    if lastCommand == node.command:
                         node = nodes.pop(0)
                         built.append(node.getValue())
-                elif self.options['circle_path']:
-                    if len(nodes) > 0:
-                        node = nodes.pop(0)
-                        leftPath.append(node)
-                    if len(nodes) > 0:
-                        node = nodes.pop()
-                        rightPath.insert(0, node)
 
-                    built = []
-                    for node in leftPath:
-                        built.append(node.getValue())
-                    for node in rightPath:
-                        built.append(node.getValue())
-                else:
+                        count += 1
+                        if self.options['group_node_count'] > 0 and count > self.options['group_node_count']:
+                            break
+                    else:
+                        break
+
+            elif self.options['circle_path']:
+                count = 0
+                while nodes:
+                    node = nodes.pop(0)
+                    leftPath.append(node)
+
+                    count += 1
+                    if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
+                        break
+
+                count = 0
+                while nodes:
+                    node = nodes.pop()
+                    rightPath.insert(0, node)
+
+                    count += 1
+                    if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
+                        break
+
+                built = []
+                for node in leftPath:
+                    built.append(node.getValue())
+                for node in rightPath:
+                    built.append(node.getValue())
+            else:
+                count = 0
+                while nodes:
                     node = nodes.pop(0)
                     built.append(node.getValue())
 
-                if self.camera.time < self.options['from'] or self.camera.time > self.options['until']:
-                    self.camera.time += 1
-                    continue
+                    count += 1
+                    if self.options['path_node_count'] > 0 and count > self.options['path_node_count']:
+                        break
 
-                d = ' '.join(built).strip()
+            if self.camera.time < self.options['from'] or self.camera.time > self.options['until']:
+                self.camera.time += 1
+                continue
 
-                # for p in range(pathIndex-1,-1,-1):
-                    # d = paths[p] + ' ' + d
-                previousPaths = paths[0:pathIndex]
-                d = ' '.join(previousPaths).strip() + ' ' + d
+            d = ' '.join(built).strip()
 
-                if self.options['close_path'] and not (d.endswith('z') or d.endswith('Z')):
-                    d = d + ' z'
-                entity.attrib['d'] = d
-                self.camera.shoot(svg)
-                
-        # put the original d and style back
-        entity.attrib['d'] = ori_d
-        entity.attrib['style'] = style
-        self.camera.shoot(svg)
+            previousPaths = paths[0:pathIndex]
+            d = ' '.join(previousPaths).strip() + ' ' + d
 
-    def build_text(self, svg, entity):
-        # Special progressive drawing of a text or tspan contents.
-        # The text will appear one letter at a time until whole.
-        text = entity.text
-        entity.text = ''
-        # if we have children, recurse to build their .text now
-        if entity.getchildren():
-            children = [ ]
-            for child in entity.iterchildren():
-                if child.text:
-                    children.append(child)
-            for child in children:
-                entity.remove(child)
-            for child in children:
-                entity.append(child)
-                build_text(svg, child)
-        # come back to build our own direct text
-        if not text: return
-        for l in range(1, len(text)):
-            entity.text = text[:l]
-            self.camera.shoot(svg)
-        entity.text = text
-        self.camera.shoot(svg)
+            if self.options['close_path'] and not (d.endswith('z') or d.endswith('Z')):
+                d = d + ' z'
+            entity.attrib['d'] = d
+            self.camera.shoot(self.svg)
         
     def addMarker(self,  element, name='diamond'):
+        # add marker while building path
         marker = ""
         if name == 'diamond':
             marker_element = etree.SubElement(element, 'marker', id = 'diamond')
@@ -773,4 +878,46 @@ class SVGBuild():
             marker = ''
 
         return marker
-            
+
+
+    def lastPanning(self):
+
+        if not self.options['page_view']:
+            location = self.camera.locate(self.svg.root.attrib['id'])
+            page_width = float(self.svg.root.attrib['width'])
+            page_height = float(self.svg.root.attrib['height'])
+            if location[0] < 0 or location[1] < 0 or location[2] > page_width or location[3] > page_height:
+                print('Panning...')
+                page = [0,0,page_width,page_height]
+                target = self.camera.zoom(self.camera.fit(self.camera.locate(page)))
+                self.camera.pan(self.svg, target)
+
+                if not self.options['no_background']:
+                    rect1 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1001')
+                    rect1.set('height', str(page_height+100))
+                    rect1.set('width', str(page_width))
+                    rect1.set('x', str(0-page_width))
+                    rect1.set('y', '-50')
+                    rect1.set('style', 'fill:%s;' % self.options['background_color'])
+
+                    rect2 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1002')
+                    rect2.set('height', str(page_height+100))
+                    rect2.set('width', str(page_width))
+                    rect2.set('x', str(page_width))
+                    rect1.set('y', '-50')
+                    rect2.set('style', 'fill:%s;' % self.options['background_color'])
+
+                    rect3 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1003')
+                    rect3.set('height', str(page_height))
+                    rect3.set('width', str(page_width+100))
+                    rect3.set('x', '-50')
+                    rect3.set('y', str(0-page_height))
+                    rect3.set('style', 'fill:%s;' % self.options['background_color'])
+
+                    rect4 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1004')
+                    rect4.set('height', str(page_height))
+                    rect4.set('width', str(page_width+100))
+                    rect3.set('x', '-50')
+                    rect4.set('y', str(page_height))
+                    rect4.set('style', 'fill:%s;' % self.options['background_color'])
+
