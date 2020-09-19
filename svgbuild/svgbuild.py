@@ -55,6 +55,7 @@ class SVGBuild():
             'continue': False,
             'restart': False,
 
+            'build_polygon': False,
             'build_image': False,
             'build_text': False,
             'bring_to_top': False,
@@ -290,6 +291,8 @@ class SVGBuild():
 
                 if self.options['build_path'] and re.search(r"\}path$", child.tag):
                     self.build_path(child)
+                elif self.options['build_polygon'] and re.search(r"\}polygon$", child.tag):
+                    self.build_polygon(child)
                 elif self.options['build_image'] and re.search(r"\}image$", child.tag):
                     self.build_image(child)
                 elif self.options['build_text'] and re.search(r"\}text$", child.tag):
@@ -434,6 +437,79 @@ class SVGBuild():
         entity.attrib['style'] = style
         self.camera.shoot(self.svg)
 
+    def build_polygon(self, entity):
+        if not 'points' in entity.attrib:
+            return
+
+        id = entity.attrib['id']
+        name = id
+        print('%05d - Building up <%s id="%s"> (%s)...' % (self.camera.time, entity.tag, id, name))
+        # replace style with our own style
+        style = ''
+        if 'style' in entity.attrib:
+            style = entity.attrib['style']
+        hl = self.generateHairline(style)
+        hairline = ';'.join("%s:%s" % (key,val) for (key,val) in list(hl.items()))
+        entity.attrib['style'] = hairline
+
+        # scan the control points
+        # points = entity.attrib['d'].split(' ')
+        # print entity.attrib['d']
+        path = entity.attrib['points']
+
+        points = path.strip().split(' ')
+
+        leftPath = []
+        rightPath = []
+        built = []
+
+        while points:
+            if self.options['circle_path']:
+                count = 0
+                while points:
+                    point = points.pop(0)
+                    leftPath.append(point)
+
+                    count += 1
+                    if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
+                        break
+
+                count = 0
+                while points:
+                    point = points.pop()
+                    rightPath.insert(0, point)
+
+                    count += 1
+                    if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
+                        break
+
+                built = []
+                for point in leftPath:
+                    built.append(point)
+                for point in rightPath:
+                    built.append(point)
+            else:
+                count = 0
+                while points:
+                    point = points.pop(0)
+                    built.append(point)
+
+                    count += 1
+                    if self.options['path_node_count'] > 0 and count > self.options['path_node_count']:
+                        break
+
+            if self.camera.time < self.options['from'] or self.camera.time > self.options['until']:
+                self.camera.time += 1
+                continue
+
+            d = ' '.join(built).strip()
+
+            entity.attrib['points'] = d
+            self.camera.shoot(self.svg)
+
+        entity.attrib['points'] = path
+        entity.attrib['style'] = style
+        self.camera.shoot(self.svg)
 
     def generateHairline(self, style):
         # generate a temporary style while building path
@@ -459,27 +535,39 @@ class SVGBuild():
               'opacity': '1', 
               'overflow': 'visible', 
               'fill-opacity': '1',
-              # 'fill-rule': 'nonzero',
-              # 'stroke-linecap': 'round',
-              # 'stroke-linejoin': 'round',
               'marker': 'none',
               'marker-start': 'none',
               'marker-mid': 'none',
               'marker-end': 'none',
-              # 'stroke-miterlimit': '4',
-              # 'stroke-dasharray': 'none',
-              # 'stroke-dashoffset': '0',
               'stroke-opacity': '1',
               'visibility': 'visible',
-              # 'display': 'inline',
-              # 'enable-background': 'accumulate', 
               'stroke-width': '%f' % width
               }
 
         for h in hl:
             style_dict[h] = hl[h]
+
+        hl = {
+                'fill-rule': 'nonzero',
+                'stroke-linecap': 'round',
+                'stroke-linejoin': 'round',
+                'stroke-miterlimit': '4',
+                'stroke-dasharray': 'none',
+                'stroke-dashoffset': '0',
+                'display': 'inline',
+                'enable-background': 'accumulate'
+                }
+
+        for h in hl:
+            if not self.options['use_object_line_color'] or \
+                (self.options['use_object_line_color'] and h not in style_dict):
+                
+                style_dict[h] = hl[h]
               
-        if not self.options['use_object_line_color']:
+        if not self.options['use_object_line_color'] or \
+            (self.options['use_object_line_color'] and \
+                ('line' not in style_dict or 'stroke' not in style_dict)):
+            
             if self.options['line_color']:
                 style_dict['stroke'] = self.options['line_color']
                 style_dict['line'] = self.options['line_color']
@@ -489,7 +577,9 @@ class SVGBuild():
         if self.options['add_marker']:
             hl['marker-end'] = 'url(#%s)' % self.options['marker_name']
             
-        if not self.options['use_object_color']:
+        if not self.options['use_object_color'] or \
+            (self.options['use_object_color'] and 'fill' not in style_dict):
+            
             if self.options['object_color']:
                 style_dict['fill'] = self.options['object_color']
             else:

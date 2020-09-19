@@ -34,7 +34,8 @@ class Inkscape():
 		if sysInfo.major == 3:
 			out = out.decode('utf-8')
 
-		inkscape = re.search('^Inkscape ([0-9\.]*).*\([^\)]*\)', out)
+		# inkscape = re.search('^Inkscape ([0-9\.]*).*\([^\)]*\)', out)
+		inkscape = re.search('^Inkscape ([0-9\.]*)', out)
 		if inkscape:
 			Inkscape.version = inkscape.group(1)
 			Inkscape.installed = True
@@ -51,3 +52,9 @@ class Inkscape():
 		else:
 			return '--export-filename=%s' % png
 
+	@staticmethod
+	def exportPngCmdDict(png):
+		if parse_version(Inkscape.version) < parse_version('0.93'):
+			return {'--export-png': png}
+		else:
+			return {'--export-filename': png}

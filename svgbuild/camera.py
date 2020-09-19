@@ -25,6 +25,18 @@ class Camera():
     width = 0.
     height = 0.
 
+    def __init__(self):
+        self.options = {}
+        self.layout = {}
+
+        self.locked = False
+        self.time = 0
+        self.area = [ 0., 0., 1., 1. ]
+        self.temp = ''
+
+        self.width = 0.
+        self.height = 0.
+
     def setOptions(self, options):
         # Construct a virtual camera.
         self.locked = False
