@@ -20,8 +20,9 @@ class SVGBuild():
     options = {
             'no_background': False,
             'background_color': '#FFFFFF',
+            'use_document_background_color': False,
 
-            'show_camera': False,
+            'show_camera_frame': False,
             'camera_frame_color' : '#FF0000',
 
             'build_path': False,
@@ -165,9 +166,28 @@ class SVGBuild():
             elementCount = self.svg.read(self.filename)
             print('Surveyed %d elements.' % elementCount)
 
-            if self.options['page_view']:
-                self.options['width'] = self.svg.root.attrib['width']
-                self.options['height'] = self.svg.root.attrib['height']
+            namedview_element = self.svg.root.find('{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}namedview')
+            if namedview_element is None:
+                namedview_element = etree.Element('{http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd}namedview', id ='base')
+
+                defs_element = self.svg.root.find('{http://www.w3.org/2000/svg}defs')
+                if defs_element is not None:
+                    defs_element.addnext(namedview_element)
+                else:
+                    self.svg.root.insert(0,namedview_element)
+
+            if not self.options['use_document_background_color']:
+                namedview_element.set('pagecolor', self.options['background_color'])
+            if self.options['no_background']:
+                namedview_element.set('{http://www.inkscape.org/namespaces/inkscape}pageopacity', '0')
+            else:
+                namedview_element.set('{http://www.inkscape.org/namespaces/inkscape}pageopacity', '1')
+
+            namedview_element.set('{http://www.inkscape.org/namespaces/inkscape}document-units', 'px')
+
+            # if self.options['page_view']:
+            #     self.options['width'] = self.svg.root.attrib['width']
+            #     self.options['height'] = self.svg.root.attrib['height']
 
             if self.options['add_marker']:
                 defs_element = self.svg.root.find('{http://www.w3.org/2000/svg}defs')
@@ -197,7 +217,7 @@ class SVGBuild():
                 self.lastPanning()
                 
                 print('Finishing...')
-                self.options['show_camera'] = False
+                self.options['show_camera_frame'] = False
                 self.camera.shoot(self.svg)
                 self.camera.hold(self.options['hold'])
                 self.camera.cleanup()
@@ -266,7 +286,7 @@ class SVGBuild():
             print(' Adding child <%s id="%s">...' % (child.tag, child.attrib['id']))
 
             if self.options['page_view']:
-                if self.options['show_camera']:
+                if self.options['show_camera_frame']:
                     self.camera.pan(self.svg, child.attrib['id'], margin=1.2)
 
                 self.camera.shoot(self.svg)
@@ -513,14 +533,17 @@ class SVGBuild():
 
     def generateHairline(self, style):
         # generate a temporary style while building path
-        width = (self.camera.area[3]-self.camera.area[1]) / float(self.camera.height)
-        if self.options['page_view']:
-            page_width = float(self.svg.root.attrib['width'])
-            page_height = float(self.svg.root.attrib['height'])
-            if page_width > page_height:
-                width = page_width / page_height
-            else:
-                width = page_height / page_width
+        width = (self.camera.area[0]-self.camera.area[2]) / float(self.camera.width) * self.svg.xs
+        h = (self.camera.area[3]-self.camera.area[1]) / float(self.camera.height) * self.svg.ys
+        if h > width:
+            width = h
+        # if self.options['page_view']:
+        #     page_width = float(self.svg.root.attrib['width'])
+        #     page_height = float(self.svg.root.attrib['height'])
+        #     if page_width > page_height:
+        #         width = page_width / page_height
+        #     else:
+        #         width = page_height / page_width
         
         style_dict = {}
         style_list = style.split(';')
@@ -983,31 +1006,50 @@ class SVGBuild():
                 self.camera.pan(self.svg, target)
 
                 if not self.options['no_background']:
-                    rect1 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1001')
+                    rect1 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect9001')
                     rect1.set('height', str(page_height+100))
                     rect1.set('width', str(page_width))
                     rect1.set('x', str(0-page_width))
                     rect1.set('y', '-50')
                     rect1.set('style', 'fill:%s;' % self.options['background_color'])
 
-                    rect2 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1002')
+                    rect2 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect9002')
                     rect2.set('height', str(page_height+100))
                     rect2.set('width', str(page_width))
                     rect2.set('x', str(page_width))
                     rect1.set('y', '-50')
                     rect2.set('style', 'fill:%s;' % self.options['background_color'])
 
-                    rect3 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1003')
+                    rect3 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect9003')
                     rect3.set('height', str(page_height))
                     rect3.set('width', str(page_width+100))
                     rect3.set('x', '-50')
                     rect3.set('y', str(0-page_height))
                     rect3.set('style', 'fill:%s;' % self.options['background_color'])
 
-                    rect4 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect1004')
+                    rect4 = etree.SubElement(self.svg.root, '{http://www.w3.org/2000/svg}rect', id ='rect9004')
                     rect4.set('height', str(page_height))
                     rect4.set('width', str(page_width+100))
                     rect3.set('x', '-50')
                     rect4.set('y', str(page_height))
                     rect4.set('style', 'fill:%s;' % self.options['background_color'])
 
+    # def addNamedView(self):
+    #     <sodipodi:namedview
+    #      id="base"
+    #      pagecolor="#ffffff"
+    #      bordercolor="#666666"
+    #      borderopacity="1.0"
+    #      inkscape:pageopacity="0.0"
+    #      inkscape:pageshadow="2"
+    #      inkscape:zoom="0.35"
+    #      inkscape:cx="-612.85714"
+    #      inkscape:cy="548.57143"
+    #      inkscape:document-units="mm"
+    #      inkscape:current-layer="layer1"
+    #      showgrid="false"
+    #      inkscape:window-width="1517"
+    #      inkscape:window-height="773"
+    #      inkscape:window-x="0"
+    #      inkscape:window-y="40"
+    #      inkscape:window-maximized="1" />

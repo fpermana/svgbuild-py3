@@ -4,6 +4,7 @@ from svgbuild.inkscape import Inkscape
 from svgbuild.svgbuild import SVGBuild
 import argparse
 
+
 def main():
 	Inkscape.init()
 
@@ -23,8 +24,12 @@ def main():
 	parser.add_argument('--add-marker', default=False, help='add marker style')
 	parser.add_argument('--marker-name', default='diamond', help='add marker style')
 	parser.add_argument('--background-color', default='#FFFFFF', help='add background color')
+	parser.add_argument('--use-document-background-color', action='store_true', help='use document background color')
 	parser.add_argument('--no-background', default=False, action='store_true', help='save as transparent png')
-	parser.add_argument('--build-path', default=False, action='store_true', help='build path')
+	parser.add_argument('--build-polygon', default=False, action='store_true', help='build polygon per point')
+	parser.add_argument('--build-text', default=False, action='store_true', help='build text per character')
+	parser.add_argument('--build-image', default=False, action='store_true', help='build image per slice')
+	parser.add_argument('--build-path', default=False, action='store_true', help='build path per command')
 	parser.add_argument('--detail-path', default=False, action='store_true', help='build detailed path')
 	parser.add_argument('--path-node-count', default=0, type=int, help='build path per n node')
 	parser.add_argument('--group-node', default=False, action='store_true', help='build path by node group command')
@@ -37,8 +42,8 @@ def main():
 	parser.add_argument('--from', default=0, type=int, help='starting frame number')
 	parser.add_argument('--until', default=99999, type=int, help='ending frame number')
 	parser.add_argument('--zoom', default=6.0, type=float, help='zoom camera')
-	parser.add_argument('--show-camera', default=False, action='store_true', help='show camera (only if --page-view)')
-	parser.add_argument('--camera-frame', default='#FF0000', help='camera frame\'s color')
+	parser.add_argument('--show-camera-frame', default=False, action='store_true', help='show camera (only if --page-view)')
+	parser.add_argument('--camera-frame-color', default='#FF0000', help='camera frame\'s color')
 	parser.add_argument('--continue', default=False, action='store_true', help='continue previous build if exist')
 	parser.add_argument('--restart', default=False, action='store_true', help='delete previous build if exist')
 	options = parser.parse_args()

@@ -11,7 +11,7 @@ import os, sys
 import shutil
 import re
 import math
-from PIL import Image, ImageDraw, ImageColor
+# from PIL import Image, ImageDraw, ImageColor
 
 class Camera():
     options = {}
@@ -45,36 +45,36 @@ class Camera():
         self.temp = options['folder'] + '/' + options['temp']
         
         w = options['width']
-        uw = re.search(r'[a-zA-Z]*$',str(w))
-        if uw:
-            w = re.sub(r'[a-zA-Z]', '', str(w))
-            w = self.convertToPixel(uw.group(), float(w))
+        # uw = re.search(r'[a-zA-Z]*$',str(w))
+        # if uw:
+        #     w = re.sub(r'[a-zA-Z]', '', str(w))
+        #     w = self.convertToPixel(uw.group(), float(w))
 
         h = options['height']
-        uh = re.search(r'[a-zA-Z]*$',str(h))
-        if uh:
-            h = re.sub(r'[a-zA-Z]', '', str(h))
-            h = self.convertToPixel(uh.group(), float(h))
+        # uh = re.search(r'[a-zA-Z]*$',str(h))
+        # if uh:
+        #     h = re.sub(r'[a-zA-Z]', '', str(h))
+        #     h = self.convertToPixel(uh.group(), float(h))
         
         self.width = float(w)
         self.height = float(h)
         self.options = options
         
-    def convertToPixel(self, unit, value):
-        if unit == "mm":
-            return value * 3.7795275591
-        elif unit == "cm":
-            return value * 10 * 3.7795275591
-        elif unit == "in":
-            return value * 96
-        elif unit == "pt":
-            return value / 3 * 4
-        return value
+    # def convertToPixel(self, unit, value):
+    #     if unit == "mm":
+    #         return value * 3.7795275591
+    #     elif unit == "cm":
+    #         return value * 10 * 3.7795275591
+    #     elif unit == "in":
+    #         return value * 96
+    #     elif unit == "pt":
+    #         return value / 3 * 4
+    #     return value
         
     def _write(self, svg):
         # Save a scratch prepared copy of the xml to be used by Inkscape
         svg_string = etree.tostring(svg.root, pretty_print=True)
-        
+
         file = open(self.temp, 'w')
         sys_info = sys.version_info
         if sys_info.major == 3:
@@ -108,18 +108,18 @@ class Camera():
         result = result.split('\n')
         layout = self.layout
         w = svg.root.attrib['width']
-        uw = re.search(r'[a-zA-Z]*$',w)
-        if uw:
-            w = re.sub(r'[a-zA-Z]', '', str(w))
-            w = self.convertToPixel(uw.group(), float(w))
-            svg.root.attrib['width'] = str(w)
+        # uw = re.search(r'[a-zA-Z]*$',w)
+        # if uw:
+        #     w = re.sub(r'[a-zA-Z]', '', str(w))
+        #     w = self.convertToPixel(uw.group(), float(w))
+        #     svg.root.attrib['width'] = str(w)
         
         h = svg.root.attrib['height']
-        uh = re.search(r'[a-zA-Z]*$',h)
-        if uh:
-            h = re.sub(r'[a-zA-Z]', '', str(h))
-            h = self.convertToPixel(uh.group(), float(h))
-            svg.root.attrib['height'] = str(h)
+        # uh = re.search(r'[a-zA-Z]*$',h)
+        # if uh:
+        #     h = re.sub(r'[a-zA-Z]', '', str(h))
+        #     h = self.convertToPixel(uh.group(), float(h))
+        #     svg.root.attrib['height'] = str(h)
         
         page = [ float(w),
                  float(h) ]
@@ -148,9 +148,9 @@ class Camera():
         return flipped
         
     def locate(self, target):
-        '''Find a target (element id or area rect) and convert it
-        as necessary to return the area rect.
-        '''
+        # Find a target (element id or area rect) and convert it
+        # as necessary to return the area rect.
+        
         area = None
         if isinstance(target, list):
             area = target
@@ -165,6 +165,40 @@ class Camera():
         if area:
             self.area = area
         return area
+
+    def _addFrame(self, svg):
+
+        if self.options['page_view'] and self.options['show_camera_frame']:
+            frame = etree.SubElement(svg.root, '{http://www.w3.org/2000/svg}polygon', id ='frame9001')
+
+            camera_width = abs(self.area[2]-self.area[0])
+            camera_height = abs(self.area[3]-self.area[1])
+            x = self.area[0]
+            y = float(svg.root.attrib['height']) - camera_height - min(self.area[3],self.area[1])
+
+            x = x * svg.xs
+            y = y * svg.ys
+            camera_width = camera_width * svg.xs
+            camera_height = camera_height * svg.ys
+
+            # frame_width = int(math.ceil((camera_width + camera_height) / (camera_height if camera_height > camera_width else camera_width)))
+            # # frame_width = camera_width / camera_height * svg.xs
+            # if camera_width > camera_height :
+            #     frame_width = frame_width * svg.xs
+            # else:
+            #     frame_width = frame_width * svg.ys
+
+            frame_width = (self.area[2]-self.area[0]) / float(self.width) * svg.xs
+            h = (self.area[3]-self.area[1]) / float(self.height) * svg.ys
+            if h > frame_width:
+                frame_width = h
+
+            frame.set('points', '%s,%s %s,%s %s,%s %s,%s' % (x, y, x+camera_width, y, x+camera_width, y+camera_height, x, y+camera_height))
+            frame.set('style', 'fill-opacity: 0; stroke: %s; stroke-opacity: 1; stroke-width: %s;' % (self.options['camera_frame_color'], frame_width))
+
+            return frame
+
+        return None
     
     def _extent(self, target, fill=False):
         # Adjusts a target area to match the camera's proper aspect ratio.
@@ -247,8 +281,8 @@ class Camera():
         # Also applies background color to avoid alpha movie problems.
         if self.options['from'] <= self.time <= self.options['until']:
             # time.sleep(0.250)
-            time.sleep(0.01)
-            self._write(svg)
+            # time.sleep(0.01)
+            # self._write(svg)
             output = '%s/%s%05d.png' % (self.options['folder'],
                                         self.options['name'],
                                         self.time)
@@ -262,47 +296,81 @@ class Camera():
 
             if self.options['page_view']:
                 cmd.append('--export-area-page')
+                # cmd.extend([
+                #     '--export-area-page',
+                #     '--export-width=%s' % self.options['width'],
+                #     ])
             else:
                 spill = (self.area[3]-self.area[1]) / 20.
                 area = "%d:%d:%d:%d" % (self.area[0],
                                         self.area[1] - (spill/2),
                                         self.area[2],
                                         self.area[3] + (spill/2))
-                cmd.extend([
-                    '--export-area=%s' % area,
-                    '--export-width=%d' % self.options['width'],
-                    ])
+                cmd.append('--export-area=%s' % area)
+                # cmd.extend([
+                #     '--export-area=%s' % area,
+                #     '--export-width=%s' % self.options['width'],
+                #     ])
+
+            cmd.append('--export-width=%s' % self.options['width'])
+            
+            frame = self._addFrame(svg)
+
+            self._write(svg)
+
+            if frame is not None:
+                svg.root.remove(frame)
 
             # command = ' '.join( [ '"%s"' % str(Settings.inkscape), str(settings), '"%s"' % self.temp ])
             cmd.append(self.temp)
             # print command
             results = qx(cmd)
-            
-            output_image = Image.open(output)
 
-            if self.options['page_view'] and self.options['show_camera']:
-                spill = (self.area[3]-self.area[1]) / 20.
-                axis = int(self.area[0])
-                ordinat = int(float(svg.root.attrib['height']) - self.area[3])
+            # output_image = Image.open(output)
+            # if self.options['page_view'] and self.options['show_camera_frame']:
+            #     spill = (self.area[3]-self.area[1]) / 20.
+            #     axis = int(self.area[0])
 
-                camera_height = abs(int(self.area[1]-self.area[3]))
-                camera_width = abs(int(self.area[0]-self.area[2]))
-                frame_width = int(math.ceil((camera_width + camera_height) / (camera_height if camera_height > camera_width else camera_width)))
-                # print axis, ordinat, frame_width
-                frame_draw = ImageDraw.Draw(output_image)
-                frame_draw.line((axis, ordinat, axis+camera_width, ordinat), fill=ImageColor.getrgb(self.options['frame']), width=frame_width)
-                frame_draw.line((axis, ordinat, axis, ordinat+camera_height), fill=ImageColor.getrgb(self.options['frame']), width=frame_width)
-                frame_draw.line((axis, ordinat+camera_height, axis+camera_width, ordinat+camera_height), fill=ImageColor.getrgb(self.options['frame']), width=frame_width)
-                frame_draw.line((axis+camera_width, ordinat, axis+camera_width, ordinat+camera_height), fill=ImageColor.getrgb(self.options['frame']), width=frame_width)
-                # frame_draw.ellipse((axis-1, ordinat-1, axis+1, ordinat+1))
-                del frame_draw
-                # output_image.save(output, 'PNG', quality=100)
+            #     if axis < 0:
+            #         axis = 0
 
-            if not self.options['no_background']:
-                background = Image.new("RGB", output_image.size, ImageColor.getrgb(self.options['background_color']))
-                # background.paste(output_image, mask=output_image.split()[3]) # 3 is the alpha channel
-                background.paste(output_image,(0,0),output_image)
-                background.save(output, 'PNG', quality=100)
+            #     ordinat = int(float(svg.root.attrib['height']) - self.area[3])
+            #     if ordinat < 0:
+            #         ordinat = 0
+
+            #     camera_height = abs(int(self.area[1]-self.area[3]))
+            #     camera_width = abs(int(self.area[0]-self.area[2]))
+            #     frame_width = int(math.ceil((camera_width + camera_height) / (camera_height if camera_height > camera_width else camera_width)))
+            #     # print axis, ordinat, frame_width
+
+            #     axis1 = axis+camera_width
+            #     w = float(svg.root.attrib['width'])
+            #     if axis1 > w:
+            #         axis1 = w
+
+            #     ordinat1 = ordinat+camera_height
+            #     h = float(svg.root.attrib['height'])
+            #     if ordinat1 > h:
+            #         ordinat1 = h
+
+            #     frame_draw = ImageDraw.Draw(output_image)
+            #     # frame_draw.line((axis, ordinat, axis+camera_width, ordinat), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     # frame_draw.line((axis, ordinat, axis, ordinat+camera_height), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     # frame_draw.line((axis, ordinat+camera_height, axis+camera_width, ordinat+camera_height), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     # frame_draw.line((axis+camera_width, ordinat, axis+camera_width, ordinat+camera_height), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     frame_draw.line((axis, ordinat, axis1, ordinat), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     frame_draw.line((axis, ordinat, axis, ordinat1), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     frame_draw.line((axis, ordinat1, axis1, ordinat1), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     frame_draw.line((axis1, ordinat, axis1, ordinat1), fill=ImageColor.getrgb(self.options['camera_frame_color']), width=frame_width)
+            #     # frame_draw.ellipse((axis-1, ordinat-1, axis+1, ordinat+1))
+            #     del frame_draw
+            #     output_image.save(output, 'PNG', quality=100)
+
+            # if not self.options['no_background']:
+            #     background = Image.new("RGB", output_image.size, ImageColor.getrgb(self.options['background_color']))
+            #     # background.paste(output_image, mask=output_image.split()[3]) # 3 is the alpha channel
+            #     background.paste(output_image,(0,0),output_image)
+            #     background.save(output, 'PNG', quality=100)
             
             print('  ' + marker + ' ' + output)
             #print '  ' + marker, output

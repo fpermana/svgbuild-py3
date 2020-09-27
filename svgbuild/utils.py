@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-#!/usr/bin/python
+#!/usr/bin/env python3
 
 import os, subprocess
 
@@ -27,4 +27,4 @@ def system(cmd, verbose=False):
     '''Just like os.system() but with optional echo of the command.'''
     if verbose: print(cmd)
     return os.system(cmd)
-    
+
