@@ -13,6 +13,7 @@ Dependency
 * [Inkscape](https://inkscape.org/)
 * [lxml](https://pypi.org/project/lxml/)
 * [svg.path](https://pypi.org/project/svg.path/)
+* [Pillow](https://pypi.org/project/Pillow/)
 
 
 Usage

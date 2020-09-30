@@ -11,6 +11,7 @@ from .node import Node
 from lxml import etree
 import decimal
 from svg.path import parse_path
+from PIL import Image, ImageDraw, ImageColor
 
 class SVGBuild():
     
