@@ -1,7 +1,7 @@
 SVGBuild-py3
 ========
 
-SVGBuild is an open source Python script originally created by [Ed Halley](http://halley.cc/ed/). Source code is available for download from here http://halley.cc/code/?python/svgbuild.py. [Python2](https://python.org/), [Inkscape](https://inkscape.org/), and [ImageMagick](https://imagemagick.org/) are needed to run that script. [FFmpeg](https://ffmpeg.org/), [avconv](https://libav.org/avconv.html) or similar tools could be used to create videos as final result.
+SVGBuild is an open source Python script originally created by Ed Halley. Source code is available for download from here http://halley.cc/code/?python/svgbuild.py. [Python2](https://python.org/), [Inkscape](https://inkscape.org/), and [ImageMagick](https://imagemagick.org/) are needed to run that script. [FFmpeg](https://ffmpeg.org/), [avconv](https://libav.org/avconv.html) or similar tools could be used to create videos as final result.
 
 This repository is modified version of the original one. I made some improvements such as removing external ImageMagick dependency, add several new options, optimize performance, etc.
 
@@ -39,6 +39,15 @@ original file was downloaded from [inkscape-island-of-creativity.svg](https://in
 
 [![Freedom Machine](https://fpermana.id/images/play_Inkscape_0.92_About_Screen_by_Rizky_Djati_Munggaran_aka_ridjam.png "Freedom Machine")](https://fpermana.id/svg-build/freedom-machine "Freedom Machine")
 original file was downloaded from [Inkscape_0.92_About_Screen_by_Rizky_Djati_Munggaran_aka_ridjam.svg](https://inkscape.org/~ridjam/%E2%98%85freedom-machine)
+
+
+    main.py --build-path --detail-path --path-node-count 1 --page-view --show-camera-frame Hayley-williams-vector-popart-portrait.svg
+
+[![Hayley Williams Vector Popart Portrait
+](https://fpermana.id/images/play_Hayley-williams-vector-popart-portrait.png "Hayley Williams Vector Popart Portrait
+")](https://fpermana.id/svg-build/hayley-williams-vector-popart-portrait "Hayley Williams Vector Popart Portrait
+")
+original file was downloaded from [Hayley-williams-vector-popart-portrait.svg](https://www.vecteezy.com/vector-art/146032-hayley-williams-vector-popart-portrait)
 
 FFMPEG
 -----
