@@ -589,8 +589,7 @@ class SVGBuild():
                 style_dict[h] = hl[h]
               
         if not self.options['use_object_line_color'] or \
-            (self.options['use_object_line_color'] and \
-                ('line' not in style_dict or 'stroke' not in style_dict)):
+            (self.options['use_object_line_color'] and 'line' not in style_dict and 'stroke' not in style_dict):
             
             if self.options['line_color']:
                 style_dict['stroke'] = self.options['line_color']
