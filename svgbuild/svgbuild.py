@@ -598,7 +598,7 @@ class SVGBuild():
                 style_dict['stroke-opacity'] = '0'
 
         if self.options['add_marker']:
-            hl['marker-end'] = 'url(#%s)' % self.options['marker_name']
+            style_dict['marker-end'] = 'url(#%s)' % self.options['marker_name']
             
         if not self.options['use_object_color'] or \
             (self.options['use_object_color'] and 'fill' not in style_dict):
@@ -609,98 +609,6 @@ class SVGBuild():
                 style_dict['fill-opacity'] = '0'
         
         return style_dict
-
-    # def convertToAbsolutePath(self, d):
-    #     # convert relative path to absolute path
-    #     nodes = []
-    #     command = ""
-    #     point = ""
-    #     coordinateCount = 0
-    #     showCommand = False
-        
-    #     points = d.strip().split(' ')
-
-    #     node = None
-    #     # convert from point to Node
-    #     while points:
-            
-    #         point = points[0]
-            
-    #         node = Node()
-    #         attrib = []
-    #         if re.match(r'^[a-zA-Z]$', point):
-    #             command = point
-    #             showCommand = True
-    #             coordinateCount = Node.getCoordinateCount(command)
-    #             points.pop(0)
-    #         elif command == "M" or command == "m":
-    #             showCommand = False
-        
-    #         for j in range(0, coordinateCount):
-    #             if len(points) > 0:
-    #                 point = points.pop(0)
-    #                 if ',' not in point and len(points) > 0 and command in 'aA' and (j == 0 or j==coordinateCount-1):
-    #                     n = points.pop(0)
-    #                     if ',' in n:
-    #                         attrib.append(point)
-    #                         attrib.append(n)
-    #                     else:
-    #                         attrib.append("%s,%s" % (point,n))
-    #                 elif ',' not in point and len(points) > 0 and command in 'cClLmMqQsStT':
-    #                     attrib.append("%s,%s" % (point,points.pop(0)))
-    #                 else:
-    #                     attrib.append(point)
-
-
-    #         node.command = command
-    #         node.attrib = attrib
-    #         node.showCommand = showCommand
-            
-    #         nodes.append(node)
-
-    #     x = None
-    #     y = None
-    #     for node in nodes:
-    #         if len(node.attrib) > 0:
-    #             coordinate = node.attrib[-1]
-    #             xy = coordinate.split(",")
-    #             if x is None and y is None:
-    #                 x = float(xy[0])
-    #                 y = float(xy[1])
-    #             elif node.command == "h":
-    #                 x += float(xy[0])
-    #                 node.attrib[-1] = str(x)
-    #             elif node.command == "v":
-    #                 y += float(xy[0])
-    #                 node.attrib[-1] = str(y)
-    #             elif node.command == "H":
-    #                 x = float(xy[0])
-    #             elif node.command == "V":
-    #                 y = float(xy[0])
-    #             elif node.command.islower():
-    #                 for i in range(len(node.attrib)):
-    #                     coordinate = node.attrib[i]
-    #                     xy = coordinate.split(",")
-    #                     if len(xy) == 2:
-    #                         xy[0] = str(float(xy[0]) + x)
-    #                         xy[1] = str(float(xy[1]) + y)
-    #                         node.attrib[i] = ','.join(xy)
-    #                         if i == (len(node.attrib)-1):
-    #                             x = float(xy[0])
-    #                             y = float(xy[1])
-    #             elif node.command.isupper():
-    #                 x = float(xy[0])
-    #                 y = float(xy[1])
-
-    #         node.command = node.command.upper()
-
-    #     points = []
-    #     for node in nodes:
-    #         points.append(node.getValue())
-
-    #     d = ' '.join(points).strip()
-
-    #     return d
 
     def build_simple_path(self, entity, paths, pathIndex, path):
         # build path based on original svg build author script
@@ -724,81 +632,6 @@ class SVGBuild():
             self.camera.shoot(self.svg)
 
     def build_detail_path(self, entity, paths, pathIndex, path):
-        # build path with more detailed options
-        # nodes = parse_path(path)
-        # built = Path()
-        # leftPath = Path()
-        # rightPath = Path()
-        # lastCommand = ""
-        # built.append(nodes.pop())
-        # print(built.d())
-
-        # while nodes:
-        #     if self.options['group_node']:
-        #         node = nodes.pop(0)
-        #         built.append(node)
-        #         lastCommand = node.__class__.__name__
-        #         count = 0
-        #         while nodes:
-        #             node = nodes[0]
-                    
-        #             if lastCommand == node.__class__.__name__:
-        #                 node = nodes.pop(0)
-        #                 built.append(node)
-
-        #                 count += 1
-        #                 if self.options['group_node_count'] > 0 and count > self.options['group_node_count']:
-        #                     break
-        #             else:
-        #                 break
-        #     elif self.options['circle_path']:
-        #         count = 0
-        #         while nodes:
-        #             node = nodes.pop(0)
-        #             leftPath.append(node)
-
-        #             count += 1
-        #             if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
-        #                 break
-
-        #         count = 0
-        #         while nodes:
-        #             node = nodes.pop()
-        #             rightPath.insert(0, node)
-
-        #             count += 1
-        #             if self.options['path_node_count'] >= 0 and count > self.options['path_node_count']:
-        #                 break
-
-        #         built = Path()
-        #         for node in leftPath:
-        #             built.append(node)
-        #         for node in rightPath:
-        #             built.append(node)
-
-        #     else:
-        #         count = 0
-        #         while nodes:
-        #             node = nodes.pop(0)
-        #             built.append(node)
-
-        #             count += 1
-        #             if self.options['path_node_count'] > 0 and count > self.options['path_node_count']:
-        #                 break
-
-        #     if self.camera.time < self.options['from'] or self.camera.time > self.options['until']:
-        #         self.camera.time += 1
-        #         continue
-
-        #     d = built.d()
-
-        #     previousPaths = paths[0:pathIndex]
-        #     d = ' '.join(previousPaths).strip() + ' ' + d
-
-        #     if self.options['close_path'] and not (d.endswith('z') or d.endswith('Z')):
-        #         d = d + ' z'
-        #     entity.attrib['d'] = d
-        #     self.camera.shoot(self.svg)
 
         # convert path to absolute path
         # svgPath = parse_path(path)

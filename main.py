@@ -21,7 +21,7 @@ def main():
 	parser.add_argument('--use-object-line-color', default=False, action='store_true', help='use object\'s line color, this will override --line-color')
 	parser.add_argument('--object-color', default='', help='custom object color while building path')
 	parser.add_argument('--use-object-color', default=False, action='store_true', help='use object\'s color, this will override --object-color')
-	parser.add_argument('--add-marker', default=False, help='add marker style')
+	parser.add_argument('--add-marker', default=False, action='store_true', help='add marker style')
 	parser.add_argument('--marker-name', default='diamond', help='add marker style')
 	parser.add_argument('--background-color', default='#FFFFFF', help='add background color')
 	parser.add_argument('--use-document-background-color', action='store_true', help='use document background color')
