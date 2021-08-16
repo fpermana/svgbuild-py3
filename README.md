@@ -25,6 +25,12 @@ Options available via
 
     main.py -h
 
+Usage With Docker
+----- 
+
+    docker build . -t svgbuild
+    docker run -itd --name svgbuild -v $(pwd)/svgs:/svgbuild-py3/svgs svgbuild
+    docker exec -it svgbuild sh
 
 Examples
 -----
