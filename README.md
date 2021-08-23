@@ -1,7 +1,9 @@
 SVGBuild-py3
 ========
 
-SVGBuild is an open source Python script originally created by [Ed Halley](http://halley.cc/ed). Source code is available for download from here http://halley.cc/code/?python/svgbuild.py. [Python2](https://python.org/), [Inkscape](https://inkscape.org/), and [ImageMagick](https://imagemagick.org/) are needed to run that script. [FFmpeg](https://ffmpeg.org/), [avconv](https://libav.org/avconv.html) or similar tools could be used to create videos as final result.
+SVGBuild is an open source Python script originally created by [Ed Halley](http://halley.cc/ed). Source code is available for download from here http://halley.cc/code/?python/svgbuild.py.
+
+[Python2](https://python.org/), [Inkscape](https://inkscape.org/), and [ImageMagick](https://imagemagick.org/) are needed to run that script. [FFmpeg](https://ffmpeg.org/), [avconv](https://libav.org/avconv.html) or similar tools could be used to create videos as final result.
 
 This repository is modified version of the original one. I made some improvements such as removing external ImageMagick dependency, add several new options, optimize performance, etc.
 
